@@ -37,6 +37,14 @@ func main() {
 	log.Println("==>          This is for demonstration only.")
 	log.Println(s.Auth.ClientToken)
 
+	vaultClient.SetToken(s.Auth.ClientToken)
+	keyName := "secret/creds"
+        secretValues, err := vaultClient.Logical().Read(keyName)
+        if err != nil {
+	   fmt.Println(err)
+	}
+	log.Printf("secret %s -> %v", keyName, secretValues)
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 

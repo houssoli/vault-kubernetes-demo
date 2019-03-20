@@ -9,11 +9,11 @@ spec:
       labels:
         app: basic-example 
     spec:
-      serviceAccountName: vault-auth
+      serviceAccountName: app-auth
       containers:
         - name: app 
-          image: "hashicorp/vault-example-init:0.0.1"
+          image: "kawsark/vault-example-init:0.0.3"
           imagePullPolicy: IfNotPresent
           env:
             - name: VAULT_ADDR
-              value: "http://10.0.2.2:8200"
+              value: "http://vault.therealk.com:8200"
