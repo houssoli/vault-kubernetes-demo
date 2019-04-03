@@ -19,13 +19,22 @@ func main() {
 		log.Fatal(err)
 	}
 
+	//Read service account token
 	content, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	//Lookup VAULT_ROLE Environment variable
+	role, set := os.LookupEnv("VAULT_ROLE")
+	if !set {
+		role = "demo"
+	}
+	fmt.Printf("Using role=%s", role)
+
+	//Attempt Vault login
 	s, err := vaultClient.Logical().Write("/auth/kubernetes/login", map[string]interface{}{
-		"role": "demo",
+		"role": role,
 		"jwt":  string(content[:]),
 	})
 	if err != nil {
@@ -37,11 +46,18 @@ func main() {
 	log.Println("==>          This is for demonstration only.")
 	log.Println(s.Auth.ClientToken)
 
+	//Lookup SECRET_KEY Environment variable
+	keyName, set := os.LookupEnv("SECRET_KEY")
+	if !set {
+		keyName = "secret/creds"
+	}
+	fmt.Printf("Using key=%s", keyName)
+
+	//Read secret
 	vaultClient.SetToken(s.Auth.ClientToken)
-	keyName := "secret/creds"
-        secretValues, err := vaultClient.Logical().Read(keyName)
-        if err != nil {
-	   fmt.Println(err)
+	secretValues, err := vaultClient.Logical().Read(keyName)
+	if err != nil {
+		fmt.Println(err)
 	}
 	log.Printf("secret %s -> %v", keyName, secretValues)
 

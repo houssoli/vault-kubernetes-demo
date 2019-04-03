@@ -11,3 +11,9 @@ subjects:
 - kind: ServiceAccount
   name: vault-reviewer
   namespace: default 
+- kind: ServiceAccount
+  name: k8s-app1
+  namespace: vault-demo
+- kind: ServiceAccount
+  name: k8s-app2
+  namespace: vault-demo

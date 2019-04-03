@@ -1,45 +1,59 @@
-# Guide
+## Configure the Kubernetes Auth Method in Vault 
 
-## Configure the Kubernetes Auth Backend 
-
-### Configuring the backend
-Mount the kubernetes auth backend:
-
+### Configuring the Auth method
+Export VAULT_ADDR and VAULT_TOKEN environment variables:
 ```
-vault auth-enable kubernetes
+export VAULT_ADDR="http://vault_server_dns:8200"
+export VAULT_TOKEN=root_or_admin_token
+vault status
+vault token lookup
 ```
 
-Configure the auth backend with the pulblic key of Kubernetes' JWT signing key,
-the host for the Kubernetes API, and the CA cert used for the API. Depending on
-your configuration, most of these values can be found through the `kubectl
-config view` command. Replace the values below with the values for your system.
+At this point we will need:
+- The vault-reviewer JWT Token we created earlier
+- The endpoint Kubernetes API server
+- CA certificate used by API server.
 
+Typically this information can be found by using `kubectl config view`. Here are some example commands to extract these using `jq` (assuming the first cluster in `kubectl config view` is the one you want to use):
 ```
+# Obtain the K8S API server:
+export k8s_api_server=$(kubectl config view --raw -o json | jq -r .clusters[0].cluster.server)
+echo ${k8s_api_server}
+
+# Obtain the K8S API server CA information:
+kubectl config view --raw -o json | jq -r '.clusters[0].cluster."certificate-authority-data"' | base64 -d > ca.crt
+cat ca.crt
+```
+
+Mount the kubernetes auth method at default path and configure using the above information
+```
+vault auth enable kubernetes
 vault write auth/kubernetes/config \
-    token_reviewer_jwt=<vault-reviewer JWT Token>  \
-    kubernetes_host=https://192.168.99.100:8443 \
-    kubernetes_ca_cert=@/path/to/ca.crt
+    token_reviewer_jwt=$(cat vault-reviewer-token.txt)  \
+    kubernetes_host=${k8s_api_server} \
+    kubernetes_ca_cert=@ca.crt
 ```
 
-### Configuring a Role
+### Configuring a Role for App1:
 
 Roles are used to bind Kubernetes Service Account names and namespaces to a set
 of Vault policies and token settings. 
 
 First create the policy we want this role to gain:
-
 ```
-vault policy-write kube-auth kube-auth.hcl
+cat kube-auth.hcl
+vault policy write kube-auth kube-auth.hcl
 ```
 
-To create a role with the S.A. name "vault-auth" in the "default" namespace:
-
+Create a role with the Service Account name `app1` in the `vault-demo` namespace:
 ```
-vault write auth/kubernetes/role/demo \
-    bound_service_account_names=vault-auth \
-    bound_service_account_namespaces=default \
+vault write auth/kubernetes/role/app1 \
+    bound_service_account_names=k8s-app1 \
+    bound_service_account_namespaces=vault-demo \
     policies=kube-auth \
-    period=60s
+    period=120s
+
+vault read auth/kubernetes/role/app1
 ```
 
 Notice we set a period of 60s, this means the resulting token is a [periodic token](https://www.vaultproject.io/docs/concepts/tokens.html#periodic-tokens) and
@@ -48,19 +62,20 @@ must be renewed by the application at least every 60s.
 Read the demo role to verify everything was configured properly:
 
 ```
-vault read auth/kubernetes/role/demo
+vault read auth/kubernetes/role/app1
 ```
 Should produce the following output:
 ```
-Key                             	Value
----                             	-----
-bound_service_account_names     	[vault-auth]
-bound_service_account_namespaces	[default]
-max_ttl                         	0
-num_uses                        	0
-period                          	60
-policies                        	[default kube-auth]
-ttl                             	0
+Key                                 Value
+---                                 -----
+bound_cidrs                         []
+bound_service_account_names         [k8s-app1]
+bound_service_account_namespaces    [vault-demo]
+max_ttl                             0s
+num_uses                            0
+period                              2m
+policies                            [kube-auth]
+ttl                                 0s
 ```
 
 ### Write a secret
@@ -74,6 +89,6 @@ vault write secret/creds username=demo password=test
 ## Next Steps
 
 We now have a service account setup with the appropriate permissions and a Vault
-server configured to authenticate Service Account JWT tokens for the "vault-auth"
-Service Account in the "default" namespace. Next we will [deploy a basic
+server configured to authenticate Service Account JWT tokens for the `k8s-app1`
+Service Account in the `vault-demo` namespace. Next we will [deploy a basic
 application](./3-deploy-basic.md).

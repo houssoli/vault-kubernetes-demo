@@ -1,6 +1,4 @@
-# Guide
-
-## Deploy the sidecar example
+## Deploy the sidecar example [Pending]
 
 This example will run two containers, the first is running consul
 template that first uses the Kubernetes backend to authenticate to Vault.
@@ -12,18 +10,7 @@ will keep the secret up to date and the vault token renewed.
 
 ### Build the sidecar example
 
-The easiest way to build the containers is to connect your local docker agent
-to the remote one in kubernetes. With minikube this can be done with:
-
-```
-eval $(minikube docker-env)
-```
-
-Then we can build the container:
-```
-cd sidecar/
-./build_container
-```
+[Pending]
 
 ### Run the sidecar example
 
