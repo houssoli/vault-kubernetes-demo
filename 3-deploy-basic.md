@@ -30,6 +30,7 @@ If you do `ls` you will see a `vault-init` executable file which was output from
 #### Build container and push to container registry
 Substitute your `<usermame>` and `<tag>` for command below:
 ```
+docker login
 docker build -t <username>/vault-example-init:<tag> .
 docker images
 docker push <username>/vault-example-init
@@ -55,7 +56,7 @@ kubectl logs -f  $(kubectl \
     -o jsonpath='{.items[0].metadata.name}' -n ${ns}) -n ${ns}
 ```
 
-You should log output similar to:
+You should see log output similar to:
 ```
 2019/04/03 03:23:49 ==> WARNING: Don't ever write secrets to logs.
 2019/04/03 03:23:49 ==>          This is for demonstration only.
@@ -67,6 +68,38 @@ You should log output similar to:
 ```
 
 Then you should see a token renewal approximately every 20s.
+
+### Using Curl to access Vault REST API
+The Docker image is built from Alpine Linux and has the curl and jq utilities installed. To use the curl commands, please open a shell to the running container and use the example commands below. 
+```
+# Open up a shell into running Pod:
+kubectl get pods -n ${ns}
+kubectl exec -it <pod_name> "sh" -n ${ns}
+
+# Obtain JWT and create payload:
+export jwt=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+cat <<EOF > payload.json
+{
+  "role":"${VAULT_ROLE}",
+  "jwt":"${jwt}"
+}
+EOF
+cat payload.json
+
+# Authenticate using JWT and export VAULT_TOKEN
+curl \
+   --request POST \
+   --data @payload.json \
+   ${VAULT_ADDR}/v1/auth/kubernetes/login | jq . > vault_auth_response.txt
+export VAULT_TOKEN=$(cat vault_auth_response.txt | jq -r .auth.client_token)
+echo ${VAULT_TOKEN}
+
+# Finally, retrieve secret using Vault token
+curl \
+     --header "X-Vault-Token: ${VAULT_TOKEN}" \
+     ${VAULT_ADDR}/v1/${SECRET_KEY}
+```
+
 
 ### Cleanup 
 

@@ -13,7 +13,7 @@ spec:
       serviceAccountName: k8s-app1
       containers:
         - name: app 
-          image: "kawsark/vault-example-init:0.0.5"
+          image: "kawsark/vault-example-init:0.0.6"
           imagePullPolicy: IfNotPresent
           env:
             - name: VAULT_ADDR
