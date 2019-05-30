@@ -17,11 +17,14 @@ At this point we will need:
 Typically this information can be found by using `kubectl config view`. Here are some example commands to extract these using `jq` (assuming the first cluster in `kubectl config view` is the one you want to use):
 ```
 # Obtain the K8S API server:
-export k8s_api_server=$(kubectl config view --raw -o json | jq -r .clusters[0].cluster.server)
+export k8s_api_server=$(kubectl config view --raw -o json | jq -r '.clusters[0].cluster.server')
 echo ${k8s_api_server}
+kubectl cluster-info
 
 # Obtain the K8S API server CA information:
-kubectl config view --raw -o json | jq -r '.clusters[0].cluster."certificate-authority-data"' | base64 -d > ca.crt
+export VAULT_SA_NAME=$(kubectl get sa vault-reviewer -o jsonpath="{.secrets[*]['name']}")
+export SA_CA_CRT=$(kubectl get secret $VAULT_SA_NAME -o jsonpath="{.data['ca\.crt']}" | base64 --decode; echo)
+echo ${SA_CA_CRT} > ca.crt
 cat ca.crt
 ```
 
@@ -51,7 +54,7 @@ vault write auth/kubernetes/role/app1 \
     bound_service_account_names=k8s-app1 \
     bound_service_account_namespaces=vault-demo \
     policies=kube-auth \
-    period=120s
+    period=60s
 
 vault read auth/kubernetes/role/app1
 ```
@@ -73,7 +76,7 @@ bound_service_account_names         [k8s-app1]
 bound_service_account_namespaces    [vault-demo]
 max_ttl                             0s
 num_uses                            0
-period                              2m
+period                              1m
 policies                            [kube-auth]
 ttl                                 0s
 ```

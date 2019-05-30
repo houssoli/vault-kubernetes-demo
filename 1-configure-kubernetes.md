@@ -60,7 +60,7 @@ kubectl create -f vault-reviewer-rbac.yaml
 ### Read Service Account Token
 This token will need to be provided to Vault in the next step. The following command will save out the Service Account JWT token (requires `jq`) in the file: `vault-reviewer-token.txt`.
 ```
-kubectl get secret $(kubectl get serviceaccount vault-reviewer -o json | jq -r '.secrets[0].name') -o json | jq -r '.data.token' | base64 -d > vault-reviewer-token.txt
+kubectl get secret $(kubectl get serviceaccount vault-reviewer -o json | jq -r '.secrets[0].name') -o json | jq -r '.data.token' | base64 --decode > vault-reviewer-token.txt
 cat vault-reviewer-token.txt
 ```
 

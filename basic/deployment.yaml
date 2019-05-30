@@ -13,7 +13,7 @@ spec:
       serviceAccountName: k8s-app1
       containers:
         - name: app 
-          image: "kawsark/vault-example-init:0.0.6"
+          image: "kawsark/vault-example-init:0.0.7"
           imagePullPolicy: IfNotPresent
           env:
             - name: VAULT_ADDR
@@ -21,4 +21,6 @@ spec:
             - name: VAULT_ROLE
               value: "app1"
             - name: SECRET_KEY
-              value: "secret/creds"
+              value: "aws/creds/ec2"
+            - name: VAULT_LOGIN_PATH
+              value: "auth/kubernetes/login"

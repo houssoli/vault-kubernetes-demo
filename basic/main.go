@@ -32,8 +32,16 @@ func main() {
 	}
 	fmt.Printf("Using role=%s", role)
 
+	//Lookup VAULT_LOGIN_PATH Environment variable
+	mount_path, set := os.LookupEnv("VAULT_LOGIN_PATH")
+	if !set {
+		mount_path = "auth/kubernetes/login"
+	}
+	fmt.Printf("Using mount_path=%s", mount_path)
+
+
 	//Attempt Vault login
-	s, err := vaultClient.Logical().Write("/auth/kubernetes/login", map[string]interface{}{
+	s, err := vaultClient.Logical().Write(mount_path, map[string]interface{}{
 		"role": role,
 		"jwt":  string(content[:]),
 	})
