@@ -44,10 +44,10 @@ $ aws iam create-access-key \
 
 ## Setup Vault
 
-Read the `kube-auth` policy to verify that the role has read access to `aws/creds/readonly`:
+Read the `app1-policy` policy to verify that the role has read access to `aws/creds/readonly`:
 
 ```sh
-$ vault policies kube-auth
+$ vault policies app1-policy
 path "secret/creds" {
   capabilities = ["read"]
 }

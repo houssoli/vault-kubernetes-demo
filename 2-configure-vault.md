@@ -44,8 +44,8 @@ of Vault policies and token settings.
 
 First create the policy we want this role to gain:
 ```
-cat kube-auth.hcl
-vault policy write kube-auth kube-auth.hcl
+cat app1-policy.hcl
+vault policy write app1-policy app1-policy.hcl
 ```
 
 Create a role with the Service Account name `app1` in the `vault-demo` namespace:
@@ -53,7 +53,7 @@ Create a role with the Service Account name `app1` in the `vault-demo` namespace
 vault write auth/kubernetes/role/app1 \
     bound_service_account_names=k8s-app1 \
     bound_service_account_namespaces=vault-demo \
-    policies=kube-auth \
+    policies=app1-policy \
     period=60s
 
 vault read auth/kubernetes/role/app1
@@ -77,7 +77,7 @@ bound_service_account_namespaces    [vault-demo]
 max_ttl                             0s
 num_uses                            0
 period                              1m
-policies                            [kube-auth]
+policies                            [app1-policy]
 ttl                                 0s
 ```
 

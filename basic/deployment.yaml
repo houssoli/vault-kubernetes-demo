@@ -21,6 +21,6 @@ spec:
             - name: VAULT_ROLE
               value: "app1"
             - name: SECRET_KEY
-              value: "aws/creds/ec2"
+              value: "secret/creds"
             - name: VAULT_LOGIN_PATH
               value: "auth/kubernetes/login"
