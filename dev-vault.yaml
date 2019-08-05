@@ -1,0 +1,29 @@
+apiVersion: apps/v1beta1
+kind: Deployment 
+metadata:
+  name: dev-vault
+  namespace: "default"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+      name: dev-vault
+  template:
+    metadata:
+      labels:
+        app: vault
+        name: dev-vault
+    spec:
+      serviceAccountName: "default"
+      containers:
+        - name: vault 
+          image: "vault:1.2.0"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: VAULT_DEV_ROOT_TOKEN_ID
+              value: "root"
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK 
