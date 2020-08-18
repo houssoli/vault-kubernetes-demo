@@ -4,44 +4,38 @@ This example application will read the servcie account JWT token and use it to
 authenticate with Vault. It will then log the token (don't log secrets in a
 real application!) and keep the token renewed.
 
+### Testing the Auth method using the CLI
+Use the following commands to ensure you can login using the Kubernetes Auth method via the CLI.
+```
+# Obtain the JWT associated with App1 service account
+$ app1_secret=$(kubectl get secret -n $ns | grep app1 | awk '{print $1}')
+$ app1_jwt=$(kubectl get secret $app1_secret -n $ns -o jsonpath='{.data.token}' | base64 --decode)
+$ vault write auth/kubernetes/login role=app1 jwt=$app1_jwt
+Key                                       Value
+---                                       -----
+token                                     s.pzy4DvkkwAXE0og2Zy2S1hZl
+token_accessor                            jUFpP7RV9ssgKTxBIo9WMQR5
+token_duration                            1m
+token_renewable                           true
+token_policies                            ["app1-policy" "default"]
+identity_policies                         []
+policies                                  ["app1-policy" "default"]
+token_meta_service_account_name           k8s-app1
+token_meta_service_account_namespace      vault-demo
+token_meta_service_account_secret_name    k8s-app1-token-wlfgx
+token_meta_service_account_uid            254599e1-3628-4ebe-8bd3-d245d0140154
+token_meta_role                           app1
+```
+
 ### Build the basic example application and container (optional)
-
-The basic-example application is available publicly in Dockerhub: [https://hub.docker.com/r/kawsark/vault-example-init/tags](https://hub.docker.com/r/kawsark/vault-example-init/tags). However, most K8S installations will have restrictions regarding approved container registries. The steps below will help compile the application, build the container, then push the application to an approved registry.
-
-#### Install Go runtime and download Vault SDK:
-```
-# Install Go runtime: 
-sudo apt-get install wget -y
-wget https://dl.google.com/go/go1.12.1.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.12.1.linux-amd64.tar.gz
-export PATH=$PATH:/usr/local/go/bin
-
-# Download the Go SDK for Vault:
-go get github.com/hashicorp/vault/api
-ls $HOME/go/src/github.com/hashicorp/vault/
-```
-#### Compile application
-```
-cd basic/
-./build
-```
-If you do `ls` you will see a `vault-init` executable file which was output from Go compiler. In `Dockerfile` this executable will be added as the Entrypoint: `ENTRYPOINT ["/vault-init"]`
-
-#### Build container and push to container registry
-Substitute your `<usermame>` and `<tag>` for command below:
-```
-docker login
-docker build -t <username>/vault-example-init:<tag> .
-docker images
-docker push <username>/vault-example-init
-```
+This is optional, please see the steps in [build.md](basic/build.md)
 
 ### Run the basic example
 Edit `deployment.yaml` and adjust the following:
 - `VAULT_ADDR` should be updated to your vault server endpoint
 - `image` should be adjusted with your image tag - if you chose to compile the application and build the container. If you have access to public images in Dockerhub, you can leave the default of `kawsark/vault-example-init:<tag>` 
 
-Now we can run the application:
+Now we can create the application deployment by running the following command fromt he basic/ directory.
 ```
 kubectl create -f deployment.yaml
 ```
@@ -51,8 +45,7 @@ kubectl create -f deployment.yaml
 export ns="vault-demo"
 kubectl get deployment -n ${ns}
 kubectl get pods -n ${ns}
-kubectl logs -f  $(kubectl \
-    get pods -l app=basic-example \
+kubectl logs -f  $(kubectl get pods -l app=basic-example \
     -o jsonpath='{.items[0].metadata.name}' -n ${ns}) -n ${ns}
 ```
 

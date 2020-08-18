@@ -1,20 +1,6 @@
 # Configure Kubernetes
 
 This guide will walk you configuring Vault's Kubernetes Auth method
-Requirements:
-* Vault server (>0.9.0), and a root or administrative token
-* Existing Kubernetes cluster. 
-* Connectivity between Vault and K8S
-* The `ca.crt` file from Kubernetes cluster creation
-
-Example validation commands:
-```
-vault --version
-# Ensure VAULT_ADDR and VAULT_TOKEN environment variables are exported correctly:
-vault token lookup
-kubectl cluster-info
-kubectl get nodes
-```
 
 ## Configure Service Accounts in Kubernetes
 
@@ -57,6 +43,8 @@ service account with a role that gives it access to the TokenReview API.
 ```
 kubectl create -f vault-reviewer-rbac.yaml
 ```
+The above command will create a ClusterRoleBinding for the `vault-reviewer` service account to the `system:auth-delegator` ClusterRole. To view the permissions of this role, please issue: `kubectl describe ClusterRole system:auth-delegator`. You will notice PolicyRule that allows tokenreview and subjectaccessreview API calls.
+
 ### Read Service Account Token
 This token will need to be provided to Vault in the next step. The following command will save out the Service Account JWT token (requires `jq`) in the file: `vault-reviewer-token.txt`.
 ```
@@ -67,4 +55,4 @@ cat vault-reviewer-token.txt
 ## Next Steps
 
 We now have a service account setup with the appropriate permissions. Next we
-will [configure the Kubernetes Auth method](./2-configure-vault.md).
+will configure the [Kubernetes Auth method](./2-configure-vault.md) in Vault.

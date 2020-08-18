@@ -16,12 +16,13 @@ At this point we will need:
 
 Typically this information can be found by using `kubectl config view`. Here are some example commands to extract these using `jq` (assuming the first cluster in `kubectl config view` is the one you want to use):
 ```
-# Obtain the K8S API server:
-export k8s_api_server=$(kubectl config view --raw -o json | jq -r '.clusters[0].cluster.server')
-echo ${k8s_api_server}
+# Obtain the K8S API server endpoint
 kubectl cluster-info
+export k8s_api_server=$(kubectl config view --raw -o json | grep -A 5 "$(kubectl config current-context)" | grep server | sed -e s/,// -e s/\"//g | awk '{print $NF}')
+echo ${k8s_api_server}
+# Please validate that the above API server endpoint URL is correct. If not, you can copy paste the server URL from kubectl cluster-info
 
-# Obtain the K8S API server CA information:
+# Obtain the K8S API server CA information
 export VAULT_SA_NAME=$(kubectl get sa vault-reviewer -o jsonpath="{.secrets[*]['name']}")
 export SA_CA_CRT=$(kubectl get secret $VAULT_SA_NAME -o jsonpath="{.data['ca\.crt']}" | base64 --decode; echo)
 echo ${SA_CA_CRT} > ca.crt
@@ -32,12 +33,12 @@ Mount the kubernetes auth method at default path and configure using the above i
 ```
 vault auth enable kubernetes
 vault write auth/kubernetes/config \
-    token_reviewer_jwt=$(cat vault-reviewer-token.txt)  \
+    token_reviewer_jwt=$(cat vault-reviewer-token.txt) \
     kubernetes_host=${k8s_api_server} \
     kubernetes_ca_cert=@ca.crt
 ```
 
-### Configuring a Role for App1:
+### Configuring a Role for App1
 
 Roles are used to bind Kubernetes Service Account names and namespaces to a set
 of Vault policies and token settings. 
@@ -59,16 +60,13 @@ vault write auth/kubernetes/role/app1 \
 vault read auth/kubernetes/role/app1
 ```
 
-Notice we set a period of 60s, this means the resulting token is a [periodic token](https://www.vaultproject.io/docs/concepts/tokens.html#periodic-tokens) and
-must be renewed by the application at least every 60s.
+Notice we set a period of 60s, this means the resulting token is a [periodic token](https://www.vaultproject.io/docs/concepts/tokens.html#periodic-tokens) and must be renewed by the application at least every 60s.
 
 Read the demo role to verify everything was configured properly:
 
 ```
 vault read auth/kubernetes/role/app1
-```
-Should produce the following output:
-```
+# It should provide an output similar to below
 Key                                 Value
 ---                                 -----
 bound_cidrs                         []
@@ -83,10 +81,16 @@ ttl                                 0s
 
 ### Write a secret
 
-This will be used later in the demo
-
+Mount the KV version 1 engive and write a static secret. This will be used later in the demo.
 ```
+vault secrets enable -path=secret -version=1 kv
 vault write secret/creds username=demo password=test
+```
+
+Create a token with the `app1-policy` to ensure we can read the above path as below:
+```
+token=$(vault token create -format=json -policy=app1-policy | jq -r .auth.client_token)
+VAULT_TOKEN=$token vault read secret/creds
 ```
 
 ## Next Steps
